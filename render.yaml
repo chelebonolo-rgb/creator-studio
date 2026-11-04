@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: creator-studio-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: CREATOR_NAME
+        sync: false
+      - key: CREATOR_EMAIL
+        sync: false
+      - key: CREATOR_PASSWORD
+        sync: false
