@@ -44,7 +44,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 const CREATOR_NAME = import.meta.env.VITE_CREATOR_NAME || 'Alex Morgan';
 const CREATOR_INTRO =
   import.meta.env.VITE_CREATOR_INTRO ||
