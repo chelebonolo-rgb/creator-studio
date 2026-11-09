@@ -16,6 +16,7 @@ import viewerAuthRoutes from './routes/viewerAuth.js';
 import bookmarkRoutes from './routes/bookmarks.js';
 import newsletterRoutes from './routes/newsletter.js';
 import uploadRoutes from './routes/uploads.js';
+import viewerStoryRoutes from './routes/viewerStories.js';
 
 const requiredEnvironment = ['MONGODB_URI', 'JWT_SECRET'];
 const missingEnvironment = requiredEnvironment.filter((key) => !process.env[key]);
@@ -57,6 +58,7 @@ app.get('/api/health', (req, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/contents', contentRoutes);
+app.use('/api/viewer-stories', viewerStoryRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/likes', likeRoutes);
 app.use('/api/reactions', reactionRoutes);

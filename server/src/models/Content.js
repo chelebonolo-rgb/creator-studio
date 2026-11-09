@@ -14,6 +14,8 @@ export const CONTENT_STATUSES = ['draft', 'published', 'scheduled'];
 const contentSchema = new mongoose.Schema(
   {
     creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Viewer', default: null, index: true },
+    authorName: { type: String, trim: true, maxlength: 60, default: '' },
     title: { type: String, required: true, trim: true, maxlength: 150 },
     description: { type: String, required: true, trim: true, maxlength: 5000 },
     category: { type: String, required: true, enum: CATEGORIES },

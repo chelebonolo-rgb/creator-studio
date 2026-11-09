@@ -114,6 +114,7 @@ function AppHeader() {
       <nav className="site-nav" aria-label="Main navigation">
         <a href="/#stories">Stories</a>
         <a href="/#about">About</a>
+        <Link to="/viewer/stories/new" className="nav-creator">Write a story <Pencil size={14} /></Link>
         <Link to="/viewer/account" className="nav-creator">Saved stories <Bookmark size={14} /></Link>
         <Link to="/creator/login" className="nav-creator">Creator studio <ArrowUpRight size={14} /></Link>
       </nav>
@@ -452,6 +453,7 @@ function ContentDetail() {
         <article className="detail-article">
           <div className="detail-meta"><span>{content.category}</span><span>{content.contentType}</span><span>{formatDate(content.publishedAt)}</span></div>
           <h1>{content.title}</h1>
+          {content.authorName && <p className="story-author">By {content.authorName}</p>}
           <p className="detail-deck">{content.description}</p>
           <div className="detail-art"><ContentArtwork content={content} large /></div>
           <div className="detail-actions">
@@ -511,6 +513,7 @@ function ViewerAccountPage() {
   const [password, setPassword] = useState('');
   const [viewer, setViewer] = useState(null);
   const [bookmarks, setBookmarks] = useState([]);
+  const [stories, setStories] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const token = localStorage.getItem(VIEWER_TOKEN_KEY);
@@ -521,16 +524,20 @@ function ViewerAccountPage() {
     const result = await api('/bookmarks', { token: viewerToken });
     setBookmarks(result.bookmarks);
   }, []);
+  const loadStories = useCallback(async (viewerToken) => {
+    const result = await api('/viewer-stories/mine', { token: viewerToken });
+    setStories(result.contents);
+  }, []);
 
   useEffect(() => {
     if (!token) return;
     api('/viewer-auth/me', { token })
       .then(({ viewer: current }) => {
         setViewer(current);
-        return loadBookmarks(token);
+        return Promise.all([loadBookmarks(token), loadStories(token)]);
       })
       .catch((requestError) => setError(getErrorMessage(requestError)));
-  }, [token, loadBookmarks]);
+  }, [token, loadBookmarks, loadStories]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -543,7 +550,7 @@ function ViewerAccountPage() {
       });
       localStorage.setItem(VIEWER_TOKEN_KEY, result.token);
       setViewer(result.viewer);
-      await loadBookmarks(result.token);
+      await Promise.all([loadBookmarks(result.token), loadStories(result.token)]);
       if (nextPath) navigate(returnTo, { replace: true });
     } catch (requestError) {
       setError(getErrorMessage(requestError));
@@ -565,6 +572,17 @@ function ViewerAccountPage() {
     localStorage.removeItem(VIEWER_TOKEN_KEY);
     setViewer(null);
     setBookmarks([]);
+    setStories([]);
+  };
+
+  const deleteStory = async (story) => {
+    if (!window.confirm(`Delete "${story.title}" and its reader activity? This cannot be undone.`)) return;
+    try {
+      await api(`/viewer-stories/${story._id}`, { method: 'DELETE', token });
+      setStories((current) => current.filter((item) => item._id !== story._id));
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    }
   };
 
   return (
@@ -573,9 +591,12 @@ function ViewerAccountPage() {
       <main className="viewer-account-page">
         {viewer ? (
           <>
-            <div className="account-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> Your reading list</div><h1>Welcome back, <em>{viewer.name}.</em></h1><p>Signed in as {viewer.email}</p></div><button className="quiet-button" onClick={signOut}>Sign out</button></div>
+            <div className="account-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> Your account</div><h1>Welcome back, <em>{viewer.name}.</em></h1><p>Signed in as {viewer.email}</p></div><div className="account-actions"><Link className="primary-button" to="/viewer/stories/new"><Pencil size={15} /> Write a story</Link><button className="quiet-button" onClick={signOut}>Sign out</button></div></div>
             {error && <div className="notice error-notice">{error}</div>}
+            <section className="account-section"><div className="stories-top"><div><div className="eyebrow"><span className="eyebrow-line" /> Your contributions</div><h2>Your stories.</h2></div></div>{stories.length ? <div className="content-grid">{stories.map((content, index) => <div className="saved-content" key={content._id}><ContentCard content={content} index={index} /><button className="quiet-button" onClick={() => deleteStory(content)}><Trash2 size={14} /> Delete story</button></div>)}</div> : <div className="empty-state"><div className="empty-symbol"><Pencil size={22} /></div><h3>Your first story is waiting.</h3><p>Write and publish a story for the community.</p><Link className="primary-button" to="/viewer/stories/new">Write a story <ArrowRight size={15} /></Link></div>}</section>
+            <section className="account-section"><div className="stories-top"><div><div className="eyebrow"><span className="eyebrow-line" /> Saved for later</div><h2>Your reading list.</h2></div></div>
             {bookmarks.length ? <div className="content-grid">{bookmarks.map(({ content }, index) => <div className="saved-content" key={content._id}><ContentCard content={content} index={index} /><button className="quiet-button" onClick={() => removeBookmark(content._id)}><Bookmark size={14} /> Remove saved story</button></div>)}</div> : <div className="empty-state"><div className="empty-symbol"><Bookmark size={22} /></div><h3>Your list is ready.</h3><p>Open a story and choose “Save for later” to keep it here.</p><Link className="primary-button" to="/">Explore stories <ArrowRight size={15} /></Link></div>}
+            </section>
           </>
         ) : (
           <section className="login-card viewer-login-card">
@@ -594,6 +615,100 @@ function ViewerAccountPage() {
             <Link to="/" className="back-link login-back"><ArrowLeft size={15} /> Back to stories</Link>
           </section>
         )}
+      </main>
+    </>
+  );
+}
+
+function ViewerStoryPage() {
+  const navigate = useNavigate();
+  const [viewer, setViewer] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', category: 'Other', thumbnailUrl: '', articleContent: '' });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const token = localStorage.getItem(VIEWER_TOKEN_KEY);
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/viewer/account?next=%2Fviewer%2Fstories%2Fnew', { replace: true });
+      return;
+    }
+    api('/viewer-auth/me', { token })
+      .then(({ viewer: current }) => setViewer(current))
+      .catch(() => {
+        localStorage.removeItem(VIEWER_TOKEN_KEY);
+        navigate('/viewer/account?next=%2Fviewer%2Fstories%2Fnew', { replace: true });
+      })
+      .finally(() => setReady(true));
+  }, [navigate, token]);
+
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const uploadCover = async (file) => {
+    if (!file) return;
+    setError('');
+    if (!file.type.startsWith('image/')) {
+      setError('Choose an image file for your cover.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Cover images must be 10 MB or smaller.');
+      return;
+    }
+    setUploadingCover(true);
+    const body = new FormData();
+    body.append('file', file);
+    try {
+      const result = await api('/uploads/viewer', { method: 'POST', token, body });
+      update('thumbnailUrl', result.url);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+  const submit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      const { content } = await api('/viewer-stories', {
+        method: 'POST',
+        token,
+        body: JSON.stringify(form),
+      });
+      navigate(`/content/${content._id}`, { replace: true });
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!ready || !viewer) return <><AppHeader /><div className="loading-state"><span className="spinner" /> Opening the story editor...</div></>;
+
+  return (
+    <>
+      <AppHeader />
+      <main className="viewer-account-page">
+        <Link to="/viewer/account" className="back-link"><ArrowLeft size={15} /> Back to your account</Link>
+        <section className="story-submission-card">
+          <div className="eyebrow"><span className="eyebrow-line" /> A story by {viewer.name}</div>
+          <h1>Share your <em>story.</em></h1>
+          <p>Your story will be published right away and shown with your name.</p>
+          <form className="editor-form" onSubmit={submit}>
+            <label>Title<input required maxLength={150} value={form.title} onChange={(event) => update('title', event.target.value)} placeholder="Give your story a title" /></label>
+            <label>Short description<textarea required maxLength={5000} rows={3} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder="What is your story about?" /></label>
+            <label>Category<select value={form.category} onChange={(event) => update('category', event.target.value)}>{CATEGORIES.filter((category) => category !== 'All').map((category) => <option key={category}>{category}</option>)}</select></label>
+            <label>Cover photo <span className="optional-label">optional</span><input type="url" maxLength={2048} value={form.thumbnailUrl} onChange={(event) => update('thumbnailUrl', event.target.value)} placeholder="Paste an image URL or upload a photo" /><span className="upload-field"><Upload size={14} /> {uploadingCover ? 'Uploading cover...' : 'Choose cover photo'}<input type="file" accept="image/*" disabled={uploadingCover} onChange={(event) => { uploadCover(event.target.files?.[0]); event.target.value = ''; }} /></span></label>
+            {form.thumbnailUrl && <img className="story-cover-preview" src={form.thumbnailUrl} alt="Story cover preview" />}
+            <label>Your story<textarea required maxLength={50000} rows={12} value={form.articleContent} onChange={(event) => update('articleContent', event.target.value)} placeholder="Write your story here..." /></label>
+            <p className="form-note">Stories are public as soon as you publish. You can delete your story later from your account. Cover photo uploads require the site's image storage to be configured.</p>
+            {error && <div className="notice error-notice" role="alert">{error}</div>}
+            <div className="modal-actions"><Link to="/viewer/account" className="quiet-button">Cancel</Link><button className="primary-button" disabled={busy || uploadingCover}>{uploadingCover ? 'Uploading cover...' : busy ? 'Publishing...' : 'Publish story'} <Send size={15} /></button></div>
+          </form>
+        </section>
       </main>
     </>
   );
@@ -989,6 +1104,7 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/content/:id" element={<ContentDetail />} />
       <Route path="/viewer/account" element={<ViewerAccountPage />} />
+      <Route path="/viewer/stories/new" element={<ViewerStoryPage />} />
       <Route path="/creator/login" element={<LoginPage />} />
       <Route path="/creator" element={<CreatorGuard><CreatorDashboard /></CreatorGuard>} />
       <Route path="*" element={<main className="not-found"><BrandMark /><h1>Looks like a little detour.</h1><p>That page isn&apos;t here, but the good stuff is still waiting.</p><Link className="primary-button" to="/">Back to the collection <ArrowRight size={16} /></Link></main>} />

@@ -134,7 +134,7 @@ router.get('/', async (req, res, next) => {
       ];
     }
     const contents = await Content.find(filter)
-      .select('-articleContent -creator')
+      .select('-articleContent -creator -submittedBy')
       .sort({ publishedAt: -1, createdAt: -1 })
       .limit(100)
       .lean();
@@ -192,7 +192,7 @@ router.get('/:id', async (req, res, next) => {
       },
       { $inc: { views: 1 } },
       { new: true }
-    ).select('-creator');
+    ).select('-creator -submittedBy');
     if (!content) return res.status(404).json({ message: 'Published content was not found.' });
     return res.json({ content });
   } catch (error) {

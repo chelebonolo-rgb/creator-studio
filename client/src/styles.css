@@ -313,6 +313,14 @@ h1 em, h2 em { color: var(--accent); font-weight: 600; }
 .viewer-account-page { max-width: 1100px; min-height: 70vh; margin: 0 auto; padding: 55px 6% 85px; }
 .viewer-login-card { margin: 45px auto; }
 .account-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 32px; }
+.account-actions { display: flex; align-items: center; gap: 15px; }
+.account-section { margin: 0 0 55px; }
+.account-section .stories-top h2 { margin-bottom: 20px; font-size: 32px; }
+.story-submission-card { max-width: 700px; margin: 20px auto; padding: 36px; border: 1px solid #e4e1d8; background: #faf9f5; }
+.story-submission-card h1 { margin: 19px 0 10px; font-family: var(--serif); font-size: clamp(38px, 5vw, 54px); }
+.story-submission-card > p { margin-bottom: 25px; color: var(--muted); font-size: 12px; }
+.story-cover-preview { width: 100%; max-height: 340px; object-fit: cover; border: 1px solid var(--line); }
+.story-author { margin: -5px 0 20px; color: var(--muted); font-size: 12px; }
 .account-heading h1 { margin: 14px 0 8px; font-family: var(--serif); font-size: clamp(32px, 5vw, 48px); line-height: 1.1; }
 .account-heading p { color: var(--muted); font-size: 11px; }
 .account-mode-button { display: block; margin: 18px auto 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; font-size: 10px; }

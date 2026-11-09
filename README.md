@@ -4,7 +4,7 @@ A full-stack content management and viewer engagement application built to match
 
 ## What is included
 
-- **Viewer portal:** creator introduction, featured and published content, keyword search, category filters, content detail pages, view tracking, share/copy links, likes, reactions, comments, newsletter signup, viewer accounts, and bookmarks.
+- **Viewer portal:** creator introduction, featured and published content, keyword search, category filters, content detail pages, view tracking, share/copy links, likes, reactions, comments, newsletter signup, viewer accounts, bookmarks, and viewer-published stories.
 - **Creator dashboard:** JWT-protected login, overview and per-content analytics, content creation/edit/delete, draft/published/scheduled status, comment moderation, interaction notifications, and a publication calendar.
 - **Backend:** Express REST API, MongoDB/Mongoose validation, password hashing, JWT authentication, Helmet, rate limiting, CORS allow-list, and centralized error responses.
 - **Deployment:** Vercel SPA configuration and a Render Blueprint for the API.
@@ -34,6 +34,8 @@ A full-stack content management and viewer engagement application built to match
 5. Open the Vite URL shown in the terminal (normally `http://localhost:5173`). The creator login is available at `/creator/login`.
 
 The creator seed command creates an account only if the email does not already exist. The sample-content seed publishes example stories for that creator; it skips titles that already exist and can be safely rerun. Both commands use the values in `server/.env`. The creator seed never prints the password. Choose your own seed email/password; do not commit `.env` files.
+
+Signed-in viewers can use **Write a story** to publish an article immediately under their account name. They can paste a cover image URL or upload a cover photo; uploads require the Cloudinary credentials described under Deploy. Their stories appear in the public collection and the creator's content library; viewers can remove their own stories from their account page.
 
 ## API overview
 
