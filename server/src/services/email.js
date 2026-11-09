@@ -46,7 +46,7 @@ export async function sendPublishedUpdate(content) {
       await sendEmail({
         to: subscriber.email,
         subject: `New from ${process.env.CREATOR_NAME || 'your creator'}: ${content.title}`,
-        text: `${content.title}\n\n${content.description}\n\nRead more: ${process.env.PUBLIC_SITE_URL || 'http://localhost:5173'}/content/${content._id}`,
+        text: `${content.title}\n\n${content.description}\n\nRead more: ${process.env.PUBLIC_SITE_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:5173'}/content/${content._id}`,
       });
     } catch (error) {
       console.error(`Subscriber update email failed for ${subscriber.email}:`, error.message);

@@ -30,8 +30,12 @@ if (process.env.JWT_SECRET.length < 32) {
 }
 
 const app = express();
-const origins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
-  .split(',')
+const origins = [
+  process.env.CLIENT_ORIGIN || '',
+  process.env.RENDER_EXTERNAL_URL || '',
+  'http://localhost:5173',
+]
+  .flatMap((origin) => origin.split(','))
   .map((origin) => origin.trim())
   .filter(Boolean);
 
